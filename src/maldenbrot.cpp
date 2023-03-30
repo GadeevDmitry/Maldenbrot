@@ -3,9 +3,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <time.h>
 
 #define LOG_NVERIFY
-#define NLOG
 
 #include "../lib/logs/log.h"
 #include "../lib/algorithm/algorithm.h"
@@ -56,10 +56,10 @@ void maldenbrot_dtor(maldenbrot *const paint)
 void maldenbrot_scale_more (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $scale *= 1.2; }
 void maldenbrot_scale_less (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $scale /= 1.2; }
 
-void maldenbrot_shift_up   (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $y_max += $scale * $height * 0.2; }
-void maldenbrot_shift_down (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $y_max -= $scale * $height * 0.2; }
-void maldenbrot_shift_left (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $x_min -= $scale * $width  * 0.2; }
-void maldenbrot_shift_right(maldenbrot *const paint) { log_verify(paint != nullptr, ;); $x_min += $scale * $width  * 0.2; }
+void maldenbrot_shift_up   (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $y_max += $scale * (double) $height * 0.2; }
+void maldenbrot_shift_down (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $y_max -= $scale * (double) $height * 0.2; }
+void maldenbrot_shift_left (maldenbrot *const paint) { log_verify(paint != nullptr, ;); $x_min -= $scale * (double) $width  * 0.2; }
+void maldenbrot_shift_right(maldenbrot *const paint) { log_verify(paint != nullptr, ;); $x_min += $scale * (double) $width  * 0.2; }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 
@@ -67,28 +67,55 @@ bool maldenbrot_frame(maldenbrot *const paint)
 {
     log_verify(paint != nullptr, false);
 
+    sf::Color main_col = sf::Color::Red;
+
     double cur_x = $x_min,
            cur_y = $y_max;
+
+    fprintf(stderr, "scale = %lf\n", $scale);
 
     for (size_t pixels_x = 0; pixels_x < $width ; ++pixels_x) {
     for (size_t pixels_y = 0; pixels_y < $height; ++pixels_y)
         {
-            cur_x += $scale;
-            cur_y -= $scale;
-
             double prot_x = cur_x, img_x = 0,
                    prot_y = cur_y, img_y = 0;
 
             unsigned char opacity = 255;
-            for (; opacity >= 0; --opacity)
+            do
             {
                 img_x = (prot_x * prot_x) - (prot_y*prot_y) + cur_x;
                 img_y = 2 * prot_x * prot_y                 + cur_y;
 
                 if ((img_x * img_x) + (img_y * img_y) > 100) break;
-            }
 
-            $color[pixels_y][pixels_x] = (~0U << 8) | opacity;
+                prot_x = img_x;
+                prot_y = img_y;
+
+                opacity--;
+            }
+            while (opacity != 0);
+            $color[pixels_y * $width + pixels_x] = main_col.toInteger() ^ opacity;
+
+            cur_y -= $scale;
         }
+        cur_x += $scale;
+        cur_y  = $y_max;
     }
+
+    return true;
+}
+
+bool maldenbrot_draw(maldenbrot *const paint, sf::RenderWindow *const wnd)
+{
+    log_verify(paint != nullptr, false);
+    log_verify(wnd   != nullptr, false);
+
+    sf::Image   img; img.create((unsigned) $width, (unsigned) $height, (sf::Uint8 *) $color);
+    sf::Texture tex; tex.loadFromImage(img);
+    sf::Sprite  spr(tex);
+
+    (*wnd).draw(spr);
+    (*wnd).display();
+
+    return true;
 }
