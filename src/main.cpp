@@ -43,6 +43,7 @@ int main()
                     case sf::Keyboard::S:           maldenbrot_shift_down (&paint); break;
                     case sf::Keyboard::A:           maldenbrot_shift_left (&paint); break;
                     case sf::Keyboard::D:           maldenbrot_shift_right(&paint); break;
+
                     default:                                                        break;
                 }
 

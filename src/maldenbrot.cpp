@@ -15,6 +15,16 @@
 #include "maldenbrot.h"
 
 //--------------------------------------------------------------------------------------------------------------------------------
+// static global
+//--------------------------------------------------------------------------------------------------------------------------------
+
+static sf::Font FPS_FONT;
+static sf::Text FPS_TEXT;
+
+static void maldenbort_fps_init();
+static void maldenbrot_fps_upd (sf::RenderWindow *const wnd);
+
+//--------------------------------------------------------------------------------------------------------------------------------
 // DSL
 //--------------------------------------------------------------------------------------------------------------------------------
 
@@ -43,7 +53,20 @@ bool maldenbrot_ctor(maldenbrot *const paint, const size_t pixels_width,
     $x_min = x_min;
     $y_max = y_max;
 
+    maldenbort_fps_init();
+
     return true;
+}
+
+static void maldenbort_fps_init()
+{
+    sf::Color fps_color = sf::Color::White;
+
+    FPS_FONT.loadFromFile("../data/font.ttf");
+
+    FPS_TEXT.setFont    (FPS_FONT);
+    FPS_TEXT.setPosition(0, 0);
+    FPS_TEXT.setColor   (fps_color);
 }
 
 void maldenbrot_dtor(maldenbrot *const paint)
@@ -72,8 +95,6 @@ bool maldenbrot_frame(maldenbrot *const paint)
     double cur_x = $x_min,
            cur_y = $y_max;
 
-    fprintf(stderr, "scale = %lf\n", $scale);
-
     for (size_t pixels_x = 0; pixels_x < $width ; ++pixels_x) {
     for (size_t pixels_y = 0; pixels_y < $height; ++pixels_y)
         {
@@ -83,8 +104,8 @@ bool maldenbrot_frame(maldenbrot *const paint)
             unsigned char opacity = 255;
             do
             {
-                img_x = (prot_x * prot_x) - (prot_y*prot_y) + cur_x;
-                img_y = 2 * prot_x * prot_y                 + cur_y;
+                img_x = (prot_x * prot_x) - (prot_y * prot_y) + cur_x;
+                img_y = 2 * prot_x * prot_y                   + cur_y;
 
                 if ((img_x * img_x) + (img_y * img_y) > 100) break;
 
@@ -114,8 +135,33 @@ bool maldenbrot_draw(maldenbrot *const paint, sf::RenderWindow *const wnd)
     sf::Texture tex; tex.loadFromImage(img);
     sf::Sprite  spr(tex);
 
+    (*wnd).clear();
     (*wnd).draw(spr);
+
+    maldenbrot_fps_upd(wnd);
+
     (*wnd).display();
 
     return true;
+}
+
+static void maldenbrot_fps_upd(sf::RenderWindow *const wnd)
+{
+    log_verify(wnd != nullptr, ;);
+
+    static bool     is_time_run     = false;
+    static clock_t  last_frame_time =     0;
+
+    if (!is_time_run) { is_time_run = true; last_frame_time = clock(); return; }
+
+    clock_t cur_frame_time = clock();
+
+    int     fps_val = (int) (CLOCKS_PER_SEC / (cur_frame_time - last_frame_time));
+    last_frame_time = clock();
+
+    char    fps_str[100] = "";
+    sprintf(fps_str, "FPS: %d\n", fps_val);
+
+    FPS_TEXT.setString(fps_str);
+    (*wnd).draw(FPS_TEXT);
 }
