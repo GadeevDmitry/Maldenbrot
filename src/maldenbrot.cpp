@@ -86,48 +86,6 @@ void maldenbrot_shift_right(maldenbrot *const paint) { log_verify(paint != nullp
 
 //--------------------------------------------------------------------------------------------------------------------------------
 
-bool maldenbrot_frame(maldenbrot *const paint)
-{
-    log_verify(paint != nullptr, false);
-
-    sf::Color main_color_sf = sf::Color::Red;
-    unsigned  main_color    = main_color_sf.toInteger();
-
-    double cur_x = $x_min,
-           cur_y = $y_max;
-
-    for (size_t pixels_x = 0; pixels_x < $width ; ++pixels_x) {
-    for (size_t pixels_y = 0; pixels_y < $height; ++pixels_y)
-        {
-            double x_i = cur_x,
-                   y_i = cur_y;
-
-            unsigned char opacity = 255;
-            do
-            {
-                double x_square = x_i * x_i;
-                double y_square = y_i * y_i;
-                double radius_2 = x_square + y_square;
-
-                if (radius_2 > 100) break;
-
-                y_i = 2 * x_i * y_i + cur_y;
-                x_i = x_square - y_square + cur_x;
-
-                opacity--;
-            }
-            while (opacity != 0);
-            $color[pixels_y * $width + pixels_x] = main_color ^ opacity;
-
-            cur_y -= $scale;
-        }
-        cur_x += $scale;
-        cur_y  = $y_max;
-    }
-
-    return true;
-}
-
 bool maldenbrot_draw(maldenbrot *const paint, sf::RenderWindow *const wnd)
 {
     log_verify(paint != nullptr, false);

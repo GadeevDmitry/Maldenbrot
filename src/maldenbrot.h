@@ -25,7 +25,6 @@ void maldenbrot_shift_down (maldenbrot *const paint);
 void maldenbrot_shift_left (maldenbrot *const paint);
 void maldenbrot_shift_right(maldenbrot *const paint);
 //--------------------------------------------------------------------------------------------------------------------------------
-bool maldenbrot_frame(maldenbrot *const paint);
-bool maldenbrot_draw (maldenbrot *const paint, sf::RenderWindow *const wnd);
+bool maldenbrot_draw(maldenbrot *const paint, sf::RenderWindow *const wnd);
 
 #endif //MALDENBROT_H
