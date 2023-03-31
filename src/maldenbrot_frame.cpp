@@ -64,21 +64,18 @@ bool maldenbrot_frame_intrin(maldenbrot *const paint)
                 __m256d vec_square_x = _mm256_mul_pd(     vec_i_x,      vec_i_x);
                 __m256d vec_radius_2 = _mm256_add_pd(vec_square_x, vec_square_y);
 
-                for (int i = 0; i < 4; ++i) vec_opacity[i] = (vec_radius_2[i] > 100 && !vec_opacity[i]) ? opacity : vec_opacity[i];
+                __m256i mask  = (__m256i) _mm256_cmp_pd(vec_radius_2, vec_radius_max, _CMP_LE_OS);
+                vec_opacity   = _mm256_sub_epi64(vec_opacity, mask);
 
-                //bool mask = (vec_opacity[0] && vec_opacity[1]) && (vec_opacity[2] && vec_opacity[3]);
-                //if  (mask) break;
-
-                __m256d mask  = _mm256_cmp_pd(vec_radius_2, vec_radius_max, _CMP_LE_OS);
-                if (_mm256_testz_si256((__m256i) mask, (__m256i) mask) == 1) break;
+                if (_mm256_testz_si256(mask, mask) == 1) break;
 
                 vec_i_y = _mm256_mul_pd(     vec_i_y,      vec_i_x); vec_i_y = _mm256_add_pd(vec_i_y, vec_i_y); vec_i_y = _mm256_add_pd(vec_i_y, vec_cur_y);
                 vec_i_x = _mm256_sub_pd(vec_square_x, vec_square_y);                                            vec_i_x = _mm256_add_pd(vec_i_x, vec_cur_x);
- 
+
                 opacity--;
             }
             while (opacity != 0);
-            for   (unsigned i = 0; i < 4; ++i) $color[pixels_y * $width + pixels_x + i] = main_color ^ (unsigned) vec_opacity[i];
+            for   (unsigned i = 0; i < 4; ++i) $color[pixels_y * $width + pixels_x + i] = main_color ^ (unsigned) (255 - vec_opacity[i]);
 
             cur_x += 4 * $scale;
         }
