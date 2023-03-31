@@ -66,11 +66,11 @@ bool maldenbrot_frame_intrin(maldenbrot *const paint)
 
                 for (int i = 0; i < 4; ++i) vec_opacity[i] = (vec_radius_2[i] > 100 && !vec_opacity[i]) ? opacity : vec_opacity[i];
 
-                bool mask = (vec_opacity[0] && vec_opacity[1]) && (vec_opacity[2] && vec_opacity[3]);
-                if  (mask) break;
+                //bool mask = (vec_opacity[0] && vec_opacity[1]) && (vec_opacity[2] && vec_opacity[3]);
+                //if  (mask) break;
 
-                //__m256i     mask  = (__m256i) _mm256_cmp_ps((__m256) vec_radius_2, (__m256) vec_radius_max, _CMP_LE_OS);
-                //__mmask8 is_more  = _mm256_test_epi64_mask(mask, mask);
+                __m256d mask  = _mm256_cmp_pd(vec_radius_2, vec_radius_max, _CMP_LE_OS);
+                if (_mm256_testz_si256((__m256i) mask, (__m256i) mask) == 1) break;
 
                 vec_i_y = _mm256_mul_pd(     vec_i_y,      vec_i_x); vec_i_y = _mm256_add_pd(vec_i_y, vec_i_y); vec_i_y = _mm256_add_pd(vec_i_y, vec_cur_y);
                 vec_i_x = _mm256_sub_pd(vec_square_x, vec_square_y);                                            vec_i_x = _mm256_add_pd(vec_i_x, vec_cur_x);
