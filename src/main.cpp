@@ -10,6 +10,7 @@
 #include <SFML/Graphics.hpp>
 
 #include "maldenbrot.h"
+#include "maldenbrot_frame.h"
 
 static const size_t WND_SIZE = 500;
 
@@ -22,8 +23,8 @@ int main()
 
     while (wnd.isOpen())
     {
-        maldenbrot_frame(&paint);
-        maldenbrot_draw (&paint, &wnd);
+        maldenbrot_frame_intrin(&paint);
+        maldenbrot_draw(&paint, &wnd);
 
         sf::Event event;
         while (wnd.pollEvent(event))

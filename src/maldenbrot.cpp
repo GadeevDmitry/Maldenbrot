@@ -86,56 +86,6 @@ void maldenbrot_shift_right(maldenbrot *const paint) { log_verify(paint != nullp
 
 //--------------------------------------------------------------------------------------------------------------------------------
 
-bool maldenbrot_frame_cycle(maldenbrot *const paint)
-{
-    log_verify(paint != nullptr, false);
-
-    sf::Color main_color_sf = sf::Color::Red;
-    unsigned  main_color    = main_color_sf.toInteger();
-
-    double cur_x = $x_min,
-           cur_y = $y_max;
-
-    for (size_t pixels_y = 0; pixels_y     < $height; pixels_y += 1) {
-    for (size_t pixels_x = 0; pixels_x + 3 < $width ; pixels_x += 4)
-        {
-            double   vec_cur_y  [4] = {cur_y, cur_y,          cur_y,              cur_y             };
-            double   vec_cur_x  [4] = {cur_x, cur_x + $scale, cur_x + 2 * $scale, cur_x + 3 * $scale};
-
-            double   vec_i_y    [4] = {}; for (int i = 0; i < 4; ++i) { vec_i_y[i] = vec_cur_y[i]; }
-            double   vec_i_x    [4] = {}; for (int i = 0; i < 4; ++i) { vec_i_x[i] = vec_cur_x[i]; }
-
-            unsigned vec_opacity[4] = {0, 0, 0, 0};
-
-            unsigned char opacity   = 255;
-            do
-            {
-                double vec_square_y[4] = {}; for (int i = 0; i < 4; ++i) { vec_square_y[i] = vec_i_y     [i] * vec_i_y     [i]; }
-                double vec_square_x[4] = {}; for (int i = 0; i < 4; ++i) { vec_square_x[i] = vec_i_x     [i] * vec_i_x     [i]; }
-                double vec_radius_2[4] = {}; for (int i = 0; i < 4; ++i) { vec_radius_2[i] = vec_square_y[i] + vec_square_x[i]; }
-
-                for (int i = 0; i < 4; ++i) { vec_opacity[i] = (vec_radius_2[i] > 100 && !vec_opacity[i]) ? opacity : vec_opacity[i]; }
-
-                bool mask = (vec_opacity[0] && vec_opacity[1]) && (vec_opacity[2] && vec_opacity[3]);
-                if  (mask) break;
-
-                for (int i = 0; i < 4; ++i) { vec_i_y[i] = 2 *  vec_i_x[i] *      vec_i_y[i] + vec_cur_y[i]; }
-                for (int i = 0; i < 4; ++i) { vec_i_x[i] = vec_square_x[i] - vec_square_y[i] + vec_cur_x[i]; }
-        
-                opacity--;
-            }
-            while (opacity != 0);
-            for   (unsigned i = 0; i < 4; ++i) $color[pixels_y * $width + pixels_x + i] = main_color ^ vec_opacity[i];
-
-            cur_x += 4 * $scale;
-        }
-        cur_y -= $scale;
-        cur_x  = $x_min;
-    }
-
-    return true;
-}
-
 bool maldenbrot_draw(maldenbrot *const paint, sf::RenderWindow *const wnd)
 {
     log_verify(paint != nullptr, false);
