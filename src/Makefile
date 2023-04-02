@@ -27,3 +27,11 @@ all_in:    $(SOURCE) $(LIB) $(HEADER)
 
 simple:    $(SOURCE) $(LIB) $(HEADER)
 	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DSIMPLE			-o $@
+
+clean:
+	rm intrin
+	rm seperated
+	rm all_in
+	rm simple
+
+.PHONY: clean
