@@ -11,22 +11,27 @@ MALD_CPP = $(MALD).cpp
 FRAME     = maldenbrot_frame
 FRAME_H   = $(FRAME).h
 FRAME_CPP = $(FRAME).cpp
+
+SET_H	  = $(MALD)_settings.h
 #---------------------------------------------------------------------------
-SOURCE    = main.cpp $(MALD_CPP) $(FRAME_CPP)
-HEADER    = 		 $(MALD_H)   $(FRAME_H)
+SOURCE    = $(MALD_CPP) $(FRAME_CPP)
+HEADER    = $(MALD_H)   $(FRAME_H)   $(SET_H);
 LIB       = $(LOG_O) $(ALG_O)
 
-intrin:    $(SOURCE) $(LIB) $(HEADER)
-	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -o $@
+intrin:    main.cpp $(SOURCE) $(LIB) $(HEADER)
+	g++    $< 	    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -o $@
 
-seperated: $(SOURCE) $(LIB) $(HEADER)
-	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DCYCLE_SEPERATED -o $@
+separated: main.cpp $(SOURCE) $(LIB) $(HEADER)
+	g++    $< 	    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DCYCLE_SEPARATED -o $@
 
-all_in:    $(SOURCE) $(LIB) $(HEADER)
-	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DCYCLE_ALL_IN    -o $@
+all_in:    main.cpp $(SOURCE) $(LIB) $(HEADER)
+	g++    $<  		$(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DCYCLE_ALL_IN    -o $@
 
-simple:    $(SOURCE) $(LIB) $(HEADER)
-	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DSIMPLE			-o $@
+simple:    main.cpp $(SOURCE) $(LIB) $(HEADER)
+	g++    $< 		$(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DSIMPLE			-o $@
+
+time: maldenbrot_time.cpp $(SOURCE) $(LIB) $(HEADER)
+	g++ $< 				  $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -o $@
 
 clean:
 	rm intrin
