@@ -38,16 +38,13 @@ bool maldenbrot_frame_intrin(maldenbrot *const paint)
 {
     log_verify(paint != nullptr, false);
 
-    sf::Color main_color_sf = sf::Color::Red;
-    unsigned  main_color    = main_color_sf.toInteger();
-
     __m256d vec_step_x     = _mm256_set_pd (3.0 * $scale, 2.0 * $scale, $scale, 0.0);
     __m256d vec_radius_max = _mm256_set1_pd(RADIUS_MAX);
 
     double cur_x = $x_min,
            cur_y = $y_max;
 
-    for (size_t pixels_y = 0; pixels_y     < $height; pixels_y += 1) {
+    for (size_t pixels_y = 0; pixels_y     < $height; pixels_y += 1) { size_t offset = pixels_y * $width;
     for (size_t pixels_x = 0; pixels_x + 3 < $width ; pixels_x += 4)
         {
             __m256d vec_cur_y = _mm256_set1_pd(cur_y);
@@ -75,7 +72,7 @@ bool maldenbrot_frame_intrin(maldenbrot *const paint)
                 opacity--;
             }
             while (opacity != 0);
-            for   (unsigned i = 0; i < 4; ++i) $color[pixels_y * $width + pixels_x + i] = main_color ^ (unsigned) (255 - vec_opacity[i]);
+            for   (unsigned i = 0; i < 4; ++i) $color[offset + pixels_x + i] = (unsigned) vec_opacity[i];
 
             cur_x += 4 * $scale;
         }
@@ -93,16 +90,37 @@ bool maldenbrot_frame_intrin(maldenbrot *const paint)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-static void set1_epi64(long   *const dest, const long          src);
-static void set1_pd   (double *const dest, const double        src);
-static void add1_pd   (double *const dest, const double        src);
-static void  mov_pd   (double *const dest, const double *const src);
-static void  add_pd   (double *const dest, const double *const src);
-static void  sub_pd   (double *const dest, const double *const src);
-static void  mul_pd   (double *const dest, const double *const src);
-static void mul1_pd   (double *const dest, const double        src);
+static inline void set1_epi64(size_t *const dest, const size_t src) { for (int i = 0; i < 4; ++i) dest[i]  = src; }
+static inline void set1_pd   (double *const dest, const double src) { for (int i = 0; i < 4; ++i) dest[i]  = src; }
+static inline void mul1_pd   (double *const dest, const double src) { for (int i = 0; i < 4; ++i) dest[i] *= src; }
 
-static void set_pd(double *const dest, const double f0, const double f1, const double f2, const double f3);
+static inline void  mov_pd   (double *const dest, const double *const src                    ) { for (int i = 0; i < 4; ++i) dest[i] = src [i];        }
+static inline void add1_pd   (double *const dest, const double *const src1, const double src2) { for (int i = 0; i < 4; ++i) dest[i] = src1[i] + src2; }
+
+static inline void  sub_epi64(size_t *const dest, const size_t *const src1, const size_t *const src2) { for (int i = 0; i < 4; ++i) dest[i] = src1[i] - src2[i]; }
+static inline void  add_pd   (double *const dest, const double *const src1, const double *const src2) { for (int i = 0; i < 4; ++i) dest[i] = src1[i] + src2[i]; }
+static inline void  sub_pd   (double *const dest, const double *const src1, const double *const src2) { for (int i = 0; i < 4; ++i) dest[i] = src1[i] - src2[i]; }
+static inline void  mul_pd   (double *const dest, const double *const src1, const double *const src2) { for (int i = 0; i < 4; ++i) dest[i] = src1[i] * src2[i]; }
+
+static inline void set_pd    (double *const dest, const double f0,
+                                                  const double f1,
+                                                  const double f2,
+                                                  const double f3) { dest[0] = f0; dest[1] = f1; dest[2] = f2; dest[3] = f3; }
+
+static inline void cmp_le    (size_t *const dest, const double *const src1, const double src2)
+{
+    for (int i = 0; i < 4; ++i) dest[i] = (src1[i] <= src2) ? ~0UL : 0UL;
+}
+
+static inline bool testz_epi64(size_t *const src)
+{
+    bool ret = true;
+    for (int i = 0; i < 4; ++i) ret = (src[i] == 0UL) ? ret : false;
+
+    return ret;
+}
+
+#pragma GCC diagnostic pop
 
 //--------------------------------------------------------------------------------------------------------------------------------
 
@@ -110,44 +128,42 @@ bool maldenbrot_frame_cycle_separated(maldenbrot *const paint)
 {
     log_verify(paint != nullptr, false);
 
-    sf::Color main_color_sf = sf::Color::Red;
-    unsigned  main_color    = main_color_sf.toInteger();
-
     double vec_step_x    [4] = {}; set_pd (vec_step_x    , 0.0, $scale, 2.0 * $scale, 3.0 * $scale);
     double vec_radius_max[4] = {}; set1_pd(vec_radius_max, RADIUS_MAX);
 
     double cur_x = $x_min,
            cur_y = $y_max;
 
-    for (size_t pixels_y = 0; pixels_y     < $height; pixels_y += 1) {
+    for (size_t pixels_y = 0; pixels_y     < $height; pixels_y += 1) { size_t offset = pixels_y * $width;
     for (size_t pixels_x = 0; pixels_x + 3 < $width ; pixels_x += 4)
         {
             double vec_cur_y[4] = {}; set1_pd(vec_cur_y, cur_y);
-            double vec_cur_x[4] = {}; set1_pd(vec_cur_x, cur_x); add_pd(vec_cur_x, vec_step_x);
+            double vec_cur_x[4] = {}; add1_pd(vec_cur_x, vec_step_x, cur_x);
 
             double vec_i_y  [4] = {}; mov_pd(vec_i_y, vec_cur_y);
             double vec_i_x  [4] = {}; mov_pd(vec_i_x, vec_cur_x);
 
-            unsigned long vec_opacity[4] =  {}; set1_epi64((long *) vec_opacity, 0);
-            unsigned char     opacity    = 255;
+            size_t    vec_opacity[4] =  {}; set1_epi64(vec_opacity, 0);
+            unsigned char opacity    = 255;
             do
             {
-                double vec_square_y[4] = {}; mov_pd(vec_square_y,      vec_i_y); mul_pd(vec_square_y,      vec_i_y);
-                double vec_square_x[4] = {}; mov_pd(vec_square_x,      vec_i_x); mul_pd(vec_square_x,      vec_i_x);
-                double vec_radius_2[4] = {}; mov_pd(vec_radius_2, vec_square_x); add_pd(vec_radius_2, vec_square_y);
+                double vec_square_y[4] = {}; mul_pd(vec_square_y,      vec_i_y,      vec_i_y);
+                double vec_square_x[4] = {}; mul_pd(vec_square_x,      vec_i_x,      vec_i_x);
+                double vec_radius_2[4] = {}; add_pd(vec_radius_2, vec_square_x, vec_square_y);
 
-                for (int i = 0; i < 4; ++i) vec_opacity[i] = (vec_radius_2[i] > 100 && !vec_opacity[i]) ? opacity : vec_opacity[i];
+                size_t   *mask = (size_t *) vec_radius_2;
+                cmp_le   (mask       , vec_radius_2, RADIUS_MAX);
+                sub_epi64(vec_opacity, vec_opacity , mask);
 
-                bool mask = (vec_opacity[0] && vec_opacity[1]) && (vec_opacity[2] && vec_opacity[3]);
-                if  (mask) break;
+                if  (testz_epi64(mask)) break;
 
-                mul_pd (vec_i_y,      vec_i_x); mul1_pd(vec_i_y,          2.0); add_pd(vec_i_y, vec_cur_y);
-                mov_pd (vec_i_x, vec_square_x); sub_pd (vec_i_x, vec_square_y); add_pd(vec_i_x, vec_cur_x);
- 
+                mul_pd(vec_i_y, vec_i_y,      vec_i_x     ); add_pd(vec_i_y, vec_i_y, vec_i_y); add_pd(vec_i_y, vec_i_y, vec_cur_y);
+                sub_pd(vec_i_x, vec_square_x, vec_square_y);                                    add_pd(vec_i_x, vec_i_x, vec_cur_x);
+
                 opacity--;
             }
             while (opacity != 0);
-            for   (unsigned i = 0; i < 4; ++i) $color[pixels_y * $width + pixels_x + i] = main_color ^ (unsigned) vec_opacity[i];
+            for   (unsigned i = 0; i < 4; ++i) $color[offset + pixels_x + i] = (unsigned) vec_opacity[i];
 
             cur_x += 4 * $scale;
         }
@@ -159,24 +175,6 @@ bool maldenbrot_frame_cycle_separated(maldenbrot *const paint)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-
-static void set1_epi64(long   *const dest, const long          src) { for (int i = 0; i < 4; ++i) dest[i]  = src   ; }
-static void set1_pd   (double *const dest, const double        src) { for (int i = 0; i < 4; ++i) dest[i]  = src   ; }
-static void add1_pd   (double *const dest, const double        src) { for (int i = 0; i < 4; ++i) dest[i]  = src   ; }
-static void  mov_pd   (double *const dest, const double *const src) { for (int i = 0; i < 4; ++i) dest[i]  = src[i]; }
-static void  add_pd   (double *const dest, const double *const src) { for (int i = 0; i < 4; ++i) dest[i] += src[i]; }
-static void  sub_pd   (double *const dest, const double *const src) { for (int i = 0; i < 4; ++i) dest[i] -= src[i]; }
-static void  mul_pd   (double *const dest, const double *const src) { for (int i = 0; i < 4; ++i) dest[i] *= src[i]; }
-static void mul1_pd   (double *const dest, const double        src) { for (int i = 0; i < 4; ++i) dest[i] *= src   ; }
-
-static void set_pd(double *const dest, const double f0, const double f1, const double f2, const double f3)
-{
-    dest[0] = f0; dest[1] = f1; dest[2] = f2; dest[3] = f3;
-}
-
-#pragma GCC diagnostic pop
-
-//--------------------------------------------------------------------------------------------------------------------------------
 // cycle_all_in
 //--------------------------------------------------------------------------------------------------------------------------------
 
@@ -184,13 +182,10 @@ bool maldenbrot_frame_cycle_all_in(maldenbrot *const paint)
 {
     log_verify(paint != nullptr, false);
 
-    sf::Color main_color_sf = sf::Color::Red;
-    unsigned  main_color    = main_color_sf.toInteger();
-
     double cur_x = $x_min,
            cur_y = $y_max;
 
-    for (size_t pixels_y = 0; pixels_y     < $height; pixels_y += 1) {
+    for (size_t pixels_y = 0; pixels_y     < $height; pixels_y += 1) { size_t offset = pixels_y * $width;
     for (size_t pixels_x = 0; pixels_x + 3 < $width ; pixels_x += 4)
         {
             double   vec_cur_y  [4] = {cur_y, cur_y,          cur_y,              cur_y             };
@@ -199,27 +194,29 @@ bool maldenbrot_frame_cycle_all_in(maldenbrot *const paint)
             double   vec_i_y    [4] = {}; for (int i = 0; i < 4; ++i) { vec_i_y[i] = vec_cur_y[i]; }
             double   vec_i_x    [4] = {}; for (int i = 0; i < 4; ++i) { vec_i_x[i] = vec_cur_x[i]; }
 
-            unsigned vec_opacity[4] = {0, 0, 0, 0};
-
-            unsigned char opacity   = 255;
+            size_t    vec_opacity[4] = {0, 0, 0, 0};
+            unsigned char opacity    = 255;
             do
             {
                 double vec_square_y[4] = {}; for (int i = 0; i < 4; ++i) { vec_square_y[i] = vec_i_y     [i] * vec_i_y     [i]; }
                 double vec_square_x[4] = {}; for (int i = 0; i < 4; ++i) { vec_square_x[i] = vec_i_x     [i] * vec_i_x     [i]; }
-                double vec_radius_2[4] = {}; for (int i = 0; i < 4; ++i) { vec_radius_2[i] = vec_square_y[i] + vec_square_x[i]; }
+                double vec_radius_2[4] = {}; for (int i = 0; i < 4; ++i) { vec_radius_2[i] = vec_square_x[i] + vec_square_y[i]; }
 
-                for (int i = 0; i < 4; ++i) { vec_opacity[i] = (vec_radius_2[i] > 100 && !vec_opacity[i]) ? opacity : vec_opacity[i]; }
+                size_t *mask = (size_t *) vec_radius_2;
+                for (int i = 0; i < 4; ++i) mask       [i]  = (vec_radius_2[i] <= RADIUS_MAX) ? ~0UL : 0UL;
+                for (int i = 0; i < 4; ++i) vec_opacity[i] -= mask[i];
 
-                bool mask = (vec_opacity[0] && vec_opacity[1]) && (vec_opacity[2] && vec_opacity[3]);
-                if  (mask) break;
+                bool is_break = true;
+                for (int i = 0; i < 4; ++i) is_break = (mask[i] == 0) ? is_break : false;
+                if  (is_break) break;
 
-                for (int i = 0; i < 4; ++i) { vec_i_y[i] = 2 *  vec_i_x[i] *      vec_i_y[i] + vec_cur_y[i]; }
-                for (int i = 0; i < 4; ++i) { vec_i_x[i] = vec_square_x[i] - vec_square_y[i] + vec_cur_x[i]; }
-        
+                for (int i = 0; i < 4; ++i) { vec_i_y[i] = 2 * (vec_i_x[i] *      vec_i_y[i]) + vec_cur_y[i]; }
+                for (int i = 0; i < 4; ++i) { vec_i_x[i] = vec_square_x[i] - vec_square_y[i]  + vec_cur_x[i]; }
+
                 opacity--;
             }
             while (opacity != 0);
-            for   (unsigned i = 0; i < 4; ++i) $color[pixels_y * $width + pixels_x + i] = main_color ^ vec_opacity[i];
+            for   (unsigned i = 0; i < 4; ++i) $color[offset + pixels_x + i] = (unsigned) vec_opacity[i];
 
             cur_x += 4 * $scale;
         }
@@ -238,14 +235,11 @@ bool maldenbrot_frame_simple(maldenbrot *const paint)
 {
     log_verify(paint != nullptr, false);
 
-    sf::Color main_color_sf = sf::Color::Red;
-    unsigned  main_color    = main_color_sf.toInteger();
-
     double cur_x = $x_min,
            cur_y = $y_max;
 
-    for (size_t pixels_x = 0; pixels_x < $width ; ++pixels_x) {
-    for (size_t pixels_y = 0; pixels_y < $height; ++pixels_y)
+    for (size_t pixels_y = 0; pixels_y < $height; ++pixels_y) { size_t offset = pixels_y * $width;
+    for (size_t pixels_x = 0; pixels_x < $width ; ++pixels_x)
         {
             double x_i = cur_x,
                    y_i = cur_y;
@@ -259,18 +253,18 @@ bool maldenbrot_frame_simple(maldenbrot *const paint)
 
                 if (radius_2 > 100) break;
 
-                y_i = 2 * x_i * y_i + cur_y;
+                y_i = 2 * x_i * y_i       + cur_y;
                 x_i = x_square - y_square + cur_x;
 
                 opacity--;
             }
             while (opacity != 0);
-            $color[pixels_y * $width + pixels_x] = main_color ^ opacity;
+            $color[offset + pixels_x] = ~opacity;
 
-            cur_y -= $scale;
+            cur_x += $scale;
         }
-        cur_x += $scale;
-        cur_y  = $y_max;
+        cur_y -= $scale;
+        cur_x  = $x_min;
     }
 
     return true;

@@ -1,5 +1,5 @@
 #ifndef MALDENBROT_FRAME_H
-#define MALDENBROT_FRAME_h
+#define MALDENBROT_FRAME_H
 
 bool maldenbrot_frame_intrin         (maldenbrot *const paint);
 bool maldenbrot_frame_cycle_separated(maldenbrot *const paint);
