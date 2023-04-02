@@ -22,6 +22,7 @@ static sf::Font FPS_FONT;
 static sf::Text FPS_TEXT;
 
 static void maldenbort_fps_init();
+static void maldenbrot_reculc_color(maldenbrot *const paint);
 static void maldenbrot_fps_upd (sf::RenderWindow *const wnd);
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -91,19 +92,40 @@ bool maldenbrot_draw(maldenbrot *const paint, sf::RenderWindow *const wnd)
     log_verify(paint != nullptr, false);
     log_verify(wnd   != nullptr, false);
 
+    maldenbrot_reculc_color(paint);
+
     sf::Image   img; img.create((unsigned) $width, (unsigned) $height, (sf::Uint8 *) $color);
     sf::Texture tex; tex.loadFromImage(img);
     sf::Sprite  spr(tex);
 
-    (*wnd).clear();
-    (*wnd).draw(spr);
+    wnd->clear();
+    wnd->draw(spr);
 
     maldenbrot_fps_upd(wnd);
 
-    (*wnd).display();
+    wnd->display();
 
     return true;
 }
+
+static void maldenbrot_reculc_color(maldenbrot *const paint)
+{
+    for (size_t pixels_y = 0; pixels_y < $height; ++pixels_y) { size_t offset = pixels_y * $width;
+    for (size_t pixels_x = 0; pixels_x < $width ; ++pixels_x)
+        {
+            unsigned char cur_opacity = (unsigned char) $color[offset + pixels_x];
+
+            sf::Color cur_col(cur_opacity ^ 0x6C,
+                              cur_opacity ^ 0x19,
+                              cur_opacity ^ 0x68,
+                             ~cur_opacity);
+
+            $color[offset + pixels_x] = cur_col.toInteger();
+        }
+    }
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
 
 static void maldenbrot_fps_upd(sf::RenderWindow *const wnd)
 {
