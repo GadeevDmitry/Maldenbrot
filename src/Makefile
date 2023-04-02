@@ -18,6 +18,8 @@ SOURCE    = $(MALD_CPP) $(FRAME_CPP)
 HEADER    = $(MALD_H)   $(FRAME_H)   $(SET_H);
 LIB       = $(LOG_O) $(ALG_O)
 
+all: intrin separated all_in simple time
+
 intrin:    main.cpp $(SOURCE) $(LIB) $(HEADER)
 	g++    $< 	    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -o $@
 
@@ -32,11 +34,12 @@ simple:    main.cpp $(SOURCE) $(LIB) $(HEADER)
 
 time: maldenbrot_time.cpp $(SOURCE) $(LIB) $(HEADER)
 	g++ $< 				  $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -o $@
-
+#---------------------------------------------------------------------------
 clean:
-	rm intrin
-	rm seperated
-	rm all_in
-	rm simple
+	rm -f intrin
+	rm -f separated
+	rm -f all_in
+	rm -f simple
+	rm -f time
 
 .PHONY: clean
