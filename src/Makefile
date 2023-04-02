@@ -11,6 +11,19 @@ MALD_CPP = $(MALD).cpp
 FRAME     = maldenbrot_frame
 FRAME_H   = $(FRAME).h
 FRAME_CPP = $(FRAME).cpp
+#---------------------------------------------------------------------------
+SOURCE    = main.cpp $(MALD_CPP) $(FRAME_CPP)
+HEADER    = 		 $(MALD_H)   $(FRAME_H)
+LIB       = $(LOG_O) $(ALG_O)
 
-maldenbrot: main.cpp $(MALD_CPP) $(FRAME_CPP) $(MALD_H) $(FRAME_H) $(LOG_O) $(ALG_O)
-	g++ 	main.cpp $(MALD_CPP) $(FRAME_CPP) 					   $(LOG_O) $(ALG_O) $(CFLAGS) $(SFML) -o $@
+intrin:    $(SOURCE) $(LIB) $(HEADER)
+	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -o $@
+
+seperated: $(SOURCE) $(LIB) $(HEADER)
+	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DCYCLE_SEPERATED -o $@
+
+all_in:    $(SOURCE) $(LIB) $(HEADER)
+	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DCYCLE_ALL_IN    -o $@
+
+simple:    $(SOURCE) $(LIB) $(HEADER)
+	g++    $(SOURCE) $(LIB) $(CFLAGS) $(SFML) -DSIMPLE			-o $@

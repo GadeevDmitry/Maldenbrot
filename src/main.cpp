@@ -16,14 +16,37 @@ static const size_t WND_SIZE = 500;
 
 int main()
 {
-    sf::RenderWindow wnd(sf::VideoMode(WND_SIZE, WND_SIZE), "MOLDENBROT");
+    bool (*frame_func)  (maldenbrot *const paint) = nullptr;
+    sf::RenderWindow wnd(sf::VideoMode(WND_SIZE, WND_SIZE), "DEFAULT NAME");
+
+#if   defined(CYCLE_SEPERATED)
+
+    frame_func = maldenbrot_frame_cycle_separated;
+    wnd.setTitle("CYCLE SEPERATED");
+
+#elif defined(CYCLE_ALL_IN)
+
+    frame_func = maldenbrot_frame_cycle_all_in;
+    wnd.setTitle("CYCLE ALL IN");
+
+#elif defined(SIMPLE)
+
+    frame_func = maldenbrot_frame_simple;
+    wnd.setTitle("SIMPLE");
+
+#else
+
+    frame_func = maldenbrot_frame_intrin;
+    wnd.setTitle("INTRIN");
+
+#endif
 
     maldenbrot paint = {};
     maldenbrot_ctor(&paint, WND_SIZE, WND_SIZE, 3.0 / WND_SIZE, -1.5, 1.5);
 
     while (wnd.isOpen())
     {
-        maldenbrot_frame_intrin(&paint);
+        (*frame_func)  (&paint);
         maldenbrot_draw(&paint, &wnd);
 
         sf::Event event;
