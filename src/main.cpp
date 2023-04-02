@@ -11,18 +11,17 @@
 
 #include "maldenbrot.h"
 #include "maldenbrot_frame.h"
-
-static const size_t WND_SIZE = 500;
+#include "maldenbrot_settings.h"
 
 int main()
 {
     bool (*frame_func)  (maldenbrot *const paint) = nullptr;
     sf::RenderWindow wnd(sf::VideoMode(WND_SIZE, WND_SIZE), "DEFAULT NAME");
 
-#if   defined(CYCLE_SEPERATED)
+#if   defined(CYCLE_SEPARATED)
 
     frame_func = maldenbrot_frame_cycle_separated;
-    wnd.setTitle("CYCLE SEPERATED");
+    wnd.setTitle("CYCLE SEPARATED");
 
 #elif defined(CYCLE_ALL_IN)
 
@@ -42,7 +41,7 @@ int main()
 #endif
 
     maldenbrot paint = {};
-    maldenbrot_ctor(&paint, WND_SIZE, WND_SIZE, 3.0 / WND_SIZE, -1.5, 1.5);
+    maldenbrot_ctor(&paint, WND_SIZE, WND_SIZE, SCALE / WND_SIZE, X_MIN, Y_MAX);
 
     while (wnd.isOpen())
     {
